@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi Servicios Pablo Morera</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-placeholder">🚀</div> 
+        </div>
+        <h1>Multi Servicios<br><span>Pablo Morera</span></h1>
+        <p class="subtitle">Gestión de Servicios y Mensajería</p>
+    </header>
+
+    <main class="container">
+        <div class="alert-box">
+            <h3>⚠️ IMPORTANTE</h3>
+            <p>Todo servicio requiere el <strong>50% de anticipo</strong> vía SINPE Móvil.</p>
+        </div>
+
+        <form id="bookingForm">
+            <div class="form-group">
+                <label for="serviceType">¿Qué servicio necesitas?</label>
+                <select id="serviceType" onchange="toggleServiceFields()" required>
+                    <option value="" disabled selected>Selecciona una opción...</option>
+                    <option value="tramites">1. Trámites Varios (Hospitales/Clínicas)</option>
+                    <option value="mensajeria">2. Mensajería y Encomiendas</option>
+                    <option value="fila">3. Hacer fila / Guardar espacio</option>
+                    <option value="dj">4. Servicio de DJ y Animación</option>
+                    <option value="otros">5. Otros servicios</option>
+                </select>
+            </div>
+
+            <div id="fields-tramites" class="service-section hidden">
+                <label>Tipo de Trámite:</label>
+                <select id="tramiteSubtype" onchange="updateHospitalList()">
+                    <option value="Recolección de documentos">Recolección de documentos</option>
+                    <option value="Entrega de referencias">Entrega de referencias</option>
+                    <option value="Entrega de recetas">Entrega de recetas</option>
+                    <option value="Retiro de medicamentos">Retiro de medicamentos</option>
+                    <option value="Sacar citas">Sacar citas en Ebais o clínicas</option>
+                </select>
+                <label>Seleccione el lugar:</label>
+                <select id="hospitalSelect"></select>
+            </div>
+
+            <div id="fields-mensajeria" class="service-section hidden">
+                <input type="text" id="msgDesc" placeholder="¿Qué desea enviar/recolectar?">
+                <input type="text" id="msgRetiro" placeholder="Lugar de retiro">
+                <input type="text" id="msgEntrega" placeholder="Lugar de entrega">
+                <textarea id="msgDetalles" placeholder="Otros detalles..."></textarea>
+            </div>
+
+            <div id="fields-fila" class="service-section hidden">
+                <input type="text" id="filaLugar" placeholder="Lugar del evento">
+                <label>Fecha del evento:</label>
+                <input type="date" id="filaFecha">
+                <label>Hora llegada:</label>
+                <input type="time" id="filaHora">
+            </div>
+
+            <div id="fields-dj" class="service-section hidden">
+                <input type="text" id="djDireccion" placeholder="Dirección exacta">
+                <input type="number" id="djHoras" placeholder="Horas contratadas" min="1">
+            </div>
+
+            <div id="fields-otros" class="service-section hidden">
+                <textarea id="otrosDesc" placeholder="Describe el servicio..."></textarea>
+            </div>
+
+            <hr>
+
+            <div class="calendar-section">
+                <h2>📅 Reserva tu Espacio</h2>
+                <label>Fecha requerida:</label>
+                <input type="date" id="reservaFecha" required> <label>Hora estimada:</label>
+                <input type="time" id="reservaHora" required>
+                <div id="availabilityMsg" class="availability hidden"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Tu Nombre:</label>
+                <input type="text" id="clientName" required placeholder="Nombre completo">
+            </div>
+
+            <button type="button" id="btnSubmit" class="btn-whatsapp">
+                Confirmar y Enviar 📲
+            </button>
+        </form>
+    </main>
+
+    <footer>
+        <p>Multi Servicios Pablo Morera © 2025</p>
+        <a href="https://www.facebook.com/people/Pablo-morera-servicios/100063127666582/?mibextid=wwXIfr&rdid=4gmR7Cqn29eDPJ4V&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F15zyxDWoxP%2F%3Fmibextid%3DwwXIfr" target="_blank" class="fb-link">Facebook Oficial</a>
+    </footer>
+
+    <script src="script.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // TUS CREDENCIALES REALES
+        const firebaseConfig = {
+            apiKey: "AIzaSyARYoLaqbQX6uBJc56wELmHWYd1h96ullw",
+            authDomain: "pablo-morera-servicios.firebaseapp.com",
+            projectId: "pablo-morera-servicios",
+            storageBucket: "pablo-morera-servicios.firebasestorage.app",
+            messagingSenderId: "1079401266790",
+            appId: "1:1079401266790:web:9f63e4b6bc21fd35e277a7",
+            measurementId: "G-3933KR8010"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 1. Verificar Disponibilidad
+        async function checkAvailability() {
+            const fecha = document.getElementById('reservaFecha').value;
+            const hora = document.getElementById('reservaHora').value;
+            const msgDiv = document.getElementById('availabilityMsg');
+
+            if(!fecha || !hora) return;
+
+            msgDiv.textContent = "Verificando disponibilidad...";
+            msgDiv.className = "availability";
+            msgDiv.classList.remove('hidden');
+
+            const q = query(
+                collection(db, "reservas"),
+                where("fecha", "==", fecha),
+                where("hora", "==", hora),
+                where("estado", "in", ["pendiente", "confirmada"])
+            );
+
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                msgDiv.textContent = "🚫 Espacio OCUPADO. Por favor elige otro horario.";
+                msgDiv.classList.add('busy');
+                return false;
+            } else {
+                msgDiv.textContent = "✅ Espacio DISPONIBLE.";
+                msgDiv.classList.add('available');
+                return true;
+            }
+        }
+
+        // Event Listeners para verificar en tiempo real
+        document.getElementById('reservaFecha').addEventListener('change', checkAvailability);
+        document.getElementById('reservaHora').addEventListener('change', checkAvailability);
+
+        // 2. Guardar y Enviar
+        document.getElementById('btnSubmit').addEventListener('click', async () => {
+            const btn = document.getElementById('btnSubmit');
+            const fecha = document.getElementById('reservaFecha').value;
+            const hora = document.getElementById('reservaHora').value;
+            const cliente = document.getElementById('clientName').value;
+            const servicio = document.getElementById('serviceType').value;
+
+            if(!fecha || !hora || !cliente || !servicio) {
+                alert("Por favor completa todos los campos requeridos.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Procesando...";
+
+            // Doble chequeo antes de guardar
+            const isFree = await checkAvailability();
+            if(!isFree) {
+                alert("Lo sentimos, el espacio acaba de ser ocupado.");
+                btn.disabled = false;
+                btn.textContent = "Confirmar y Enviar 📲";
+                return;
+            }
+
+            try {
+                // Guardar en Firestore
+                await addDoc(collection(db, "reservas"), {
+                    cliente: cliente,
+                    servicio: servicio,
+                    fecha: fecha,
+                    hora: hora,
+                    estado: "pendiente", // Inicia como pendiente de pago
+                    timestamp: new Date()
+                });
+
+                // Llamar a la función de WhatsApp que está en script.js
+                window.generateWhatsAppLink(); 
+
+            } catch (e) {
+                console.error("Error: ", e);
+                alert("Error de conexión. Intenta de nuevo.");
+                btn.disabled = false;
+                btn.textContent = "Confirmar y Enviar 📲";
+            }
+        });
+    </script>
+</body>
+</html>

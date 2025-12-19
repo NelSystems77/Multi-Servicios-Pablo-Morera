@@ -1,0 +1,116 @@
+:root {
+    --bg-color: #1a1a2e;
+    --card-bg: #16213e;
+    --accent-cyan: #00f2ff;
+    --accent-green: #00ff88;
+    --accent-orange: #ff9d00;
+    --text-color: #ffffff;
+    --text-muted: #a0a0a0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+header {
+    text-align: center;
+    padding: 2rem 1rem;
+    background: radial-gradient(circle at top, #253b6e, var(--bg-color));
+    border-bottom: 2px solid var(--accent-cyan);
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    color: var(--accent-cyan);
+    text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+}
+h1 span { color: var(--accent-green); }
+.subtitle { color: var(--text-muted); font-size: 0.9rem; }
+
+.container { max-width: 600px; margin: 0 auto; padding: 0 20px 40px 20px; }
+
+/* Alertas */
+.alert-box {
+    background: rgba(255, 157, 0, 0.1);
+    border: 1px solid var(--accent-orange);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+.alert-box h3 { color: var(--accent-orange); margin-bottom: 5px; }
+
+/* Formularios */
+.form-group { margin-bottom: 15px; }
+label { display: block; margin-bottom: 5px; color: var(--accent-cyan); font-weight: bold; font-size: 0.9rem;}
+
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--card-bg);
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: white;
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+}
+
+/* Secciones Ocultas */
+.hidden { display: none; }
+.service-section {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 3px solid var(--accent-green);
+}
+
+/* Calendario Estado */
+.availability {
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 5px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+.available { background: rgba(0, 255, 136, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+.busy { background: rgba(255, 0, 0, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
+
+/* Botón */
+.btn-whatsapp {
+    width: 100%;
+    background: #25D366;
+    color: white;
+    padding: 16px;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+}
+.btn-whatsapp:disabled { background: #555; cursor: not-allowed; }
+
+footer {
+    text-align: center;
+    padding: 30px;
+    border-top: 1px solid #333;
+    font-size: 0.8rem;
+    color: #777;
+}
+.fb-link { color: var(--accent-cyan); text-decoration: none; display: block; margin-top: 5px; }

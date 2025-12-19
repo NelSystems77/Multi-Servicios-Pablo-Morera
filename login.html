@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Administrativo - NelSystems</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .login-container { max-width: 400px; margin: 50px auto; padding: 20px; text-align: center; }
+        .logo-giant { font-size: 3rem; margin-bottom: 20px; }
+        .error-msg { color: #ff4757; display: none; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <main class="login-container service-section">
+        <div class="logo-giant">🔐</div>
+        <h2>Acceso Restringido</h2>
+        <p>Sistema de Gestión Multi Servicios</p>
+        
+        <form id="loginForm" style="margin-top: 20px;">
+            <input type="email" id="email" placeholder="Usuario / Correo" required>
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <button type="submit" class="btn-whatsapp" style="background: var(--accent-cyan); color: #000;">Ingresar</button>
+        </form>
+        <p id="errorMsg" class="error-msg"></p>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // TUS CREDENCIALES (Las mismas de index.html)
+        const firebaseConfig = {
+            apiKey: "AIzaSyARYoLaqbQX6uBJc56wELmHWYd1h96ullw",
+            authDomain: "pablo-morera-servicios.firebaseapp.com",
+            projectId: "pablo-morera-servicios",
+            storageBucket: "pablo-morera-servicios.firebasestorage.app",
+            messagingSenderId: "1079401266790",
+            appId: "1:1079401266790:web:9f63e4b6bc21fd35e277a7",
+            measurementId: "G-3933KR8010"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // Si es exitoso, redirigir al panel
+                window.location.href = "admin.html";
+            } catch (error) {
+                console.error(error);
+                errorMsg.textContent = "❌ Credenciales incorrectas o acceso denegado.";
+                errorMsg.style.display = "block";
+            }
+        });
+    </script>
+</body>
+</html>
