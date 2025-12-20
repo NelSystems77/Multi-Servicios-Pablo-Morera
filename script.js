@@ -36,7 +36,7 @@ function updateHospitalList() {
 
 // 3. Generar Link de WhatsApp (Llamado desde index.html tras guardar en BD)
 window.generateWhatsAppLink = function() {
-    const phone = "50687409343";
+    const phone = "50688789344";
     const name = document.getElementById('clientName').value;
     const serviceType = document.getElementById('serviceType').value;
     const fecha = document.getElementById('reservaFecha').value;
@@ -71,4 +71,5 @@ window.generateWhatsAppLink = function() {
     
     // Opcional: Recargar página para limpiar
     setTimeout(() => window.location.reload(), 2000);
+
 };
