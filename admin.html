@@ -8,7 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         .admin-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #000; border-bottom: 2px solid var(--accent-cyan); }
-        .logout-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .logout-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s;}
+        .logout-btn:hover { background: #ff6b6b; }
         
         /* Panel Super Admin */
         #superAdminPanel { 
@@ -29,6 +30,9 @@
         .expire-date { font-weight: bold; color: var(--accent-green); }
         .expired { color: #ff4757; font-weight: bold; }
 
+        /* Estilos Inputs Nuevos */
+        .admin-input { width: 100%; padding: 10px; margin-bottom: 10px; background: #222; border: 1px solid #555; color: white; border-radius: 4px; }
+        
         /* Estilos Reservas */
         .booking-card {
             background: #16213e;
@@ -61,9 +65,20 @@
             
             <div class="form-group" style="background: rgba(0,0,0,0.3); padding:15px; border-radius:5px;">
                 <h3 style="color:white; font-size:1rem; margin-bottom:10px;">Crear Nuevo Admin (Cliente)</h3>
-                <input type="email" id="newAdminEmail" placeholder="Correo (ej: pablo@servicios.com)" style="margin-bottom:5px;">
-                <input type="password" id="newAdminPass" placeholder="Contraseña temporal" style="margin-bottom:10px;">
-                <button class="btn-whatsapp" id="btnCreateAdmin" style="background:var(--accent-orange); padding:10px; font-size:0.9rem; margin-top:0;">Crear Admin + 30 Días</button>
+                
+                <input type="email" id="newAdminEmail" class="admin-input" placeholder="Correo (ej: pablo@servicios.com)">
+                <input type="password" id="newAdminPass" class="admin-input" placeholder="Contraseña temporal">
+                
+                <label style="color:var(--accent-cyan); font-size:0.9rem; margin-bottom:5px; display:block;">Tiempo de Suscripción Inicial:</label>
+                <select id="initialDuration" class="admin-input">
+                    <option value="30">1 Mes (30 días)</option>
+                    <option value="90">3 Meses</option>
+                    <option value="180">6 Meses</option>
+                    <option value="365">1 Año</option>
+                    <option value="7">Prueba Gratis (7 días)</option>
+                </select>
+
+                <button class="btn-whatsapp" id="btnCreateAdmin" style="background:var(--accent-orange); padding:10px; font-size:0.9rem; margin-top:5px;">Crear Admin con Licencia</button>
             </div>
 
             <h3 style="color:white; margin-top:20px; font-size:1rem;">Administradores Activos</h3>
@@ -84,7 +99,7 @@
         import { getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // CONFIGURACIÓN REAL
+        // TUS CREDENCIALES REALES
         const firebaseConfig = {
             apiKey: "AIzaSyARYoLaqbQX6uBJc56wELmHWYd1h96ullw",
             authDomain: "pablo-morera-servicios.firebaseapp.com",
@@ -99,7 +114,23 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- 1. SEGURIDAD Y VERIFICACIÓN ---
+        // --- 1. LOGOUT MEJORADO ---
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            const btn = document.getElementById('btnLogout');
+            btn.textContent = "Cerrando...";
+            btn.disabled = true;
+            try {
+                await signOut(auth);
+                window.location.href = "login.html";
+            } catch (error) {
+                console.error("Error al salir:", error);
+                alert("Error al cerrar sesión. Intenta recargar la página.");
+                btn.textContent = "Cerrar Sesión";
+                btn.disabled = false;
+            }
+        });
+
+        // --- 2. SEGURIDAD Y VERIFICACIÓN ---
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 window.location.href = "login.html";
@@ -107,29 +138,24 @@
             }
 
             try {
-                // Consultar permisos
                 const userRef = doc(db, "admins_data", user.uid);
                 const userSnap = await getDoc(userRef);
 
                 if (!userSnap.exists()) {
-                    alert("Error de seguridad: Usuario sin ficha de datos.");
+                    alert("Usuario sin permisos.");
                     await signOut(auth);
-                    window.location.href = "login.html";
                     return;
                 }
 
                 const userData = userSnap.data();
                 const now = new Date().getTime();
 
-                // Verificar vencimiento (Ignorar si es superadmin)
                 if (userData.expiration < now && userData.role !== 'superadmin') {
-                    alert("🚫 TU SUSCRIPCIÓN HA VENCIDO.\nContacta a NelSystems.");
+                    alert("🚫 TU SUSCRIPCIÓN HA VENCIDO.");
                     await signOut(auth);
-                    window.location.href = "login.html";
                     return;
                 }
 
-                // UI: Mostrar usuario y Panel si corresponde
                 document.getElementById('currentUserDisplay').textContent = `${userData.email} (${userData.role})`;
 
                 if (userData.role === 'superadmin') {
@@ -137,7 +163,6 @@
                     loadAdminsManagement(); 
                 }
 
-                // Cargar reservas para todos
                 loadReservas();
 
             } catch (error) {
@@ -145,33 +170,31 @@
             }
         });
 
-        document.getElementById('btnLogout').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = "login.html");
-        });
-
-
-        // --- 2. GESTIÓN DE ADMINS (SuperAdmin Only) ---
-        // Usamos una app secundaria para crear usuarios sin desloguear al admin actual
+        // --- 3. CREAR ADMIN (Con Selector de Días) ---
         const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
         const secondaryAuth = getAuth(secondaryApp);
 
         document.getElementById('btnCreateAdmin').addEventListener('click', async () => {
             const email = document.getElementById('newAdminEmail').value;
             const pass = document.getElementById('newAdminPass').value;
+            const daysSelect = document.getElementById('initialDuration').value;
             const btn = document.getElementById('btnCreateAdmin');
 
-            if(!email || !pass) return alert("Completa correo y contraseña");
-            btn.textContent = "Creando..."; btn.disabled = true;
+            if(!email || !pass) return alert("Por favor completa el correo y la contraseña.");
+            
+            btn.textContent = "Procesando..."; 
+            btn.disabled = true;
 
             try {
-                // Crear en Auth
+                // Crear usuario en Auth
                 const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
                 
-                // Calcular 30 días
+                // Calcular fecha de vencimiento basada en la selección
+                const days = parseInt(daysSelect);
                 const expirationDate = new Date();
-                expirationDate.setDate(expirationDate.getDate() + 30);
+                expirationDate.setDate(expirationDate.getDate() + days);
 
-                // Crear en Firestore
+                // Crear ficha en Firestore
                 await setDoc(doc(db, "admins_data", userCred.user.uid), {
                     email: email,
                     role: "admin",
@@ -179,17 +202,21 @@
                     createdAt: new Date()
                 });
 
-                alert("✅ Administrador creado con éxito.");
+                alert(`✅ Admin creado correctamente.\nVencimiento: ${days} días.`);
+                
+                // Limpiar formulario
                 document.getElementById('newAdminEmail').value = "";
                 document.getElementById('newAdminPass').value = "";
-                signOut(secondaryAuth); // Limpiar sesión secundaria
+                await signOut(secondaryAuth); // Limpiar sesión secundaria
 
             } catch (e) {
-                alert("Error: " + e.message);
+                alert("Error al crear: " + e.message);
             }
-            btn.textContent = "Crear Admin + 30 Días"; btn.disabled = false;
+            btn.textContent = "Crear Admin con Licencia"; 
+            btn.disabled = false;
         });
 
+        // --- 4. GESTIÓN DE TIEMPOS (Prórrogas) ---
         function loadAdminsManagement() {
             const listDiv = document.getElementById('adminsList');
             onSnapshot(collection(db, "admins_data"), (snapshot) => {
@@ -210,10 +237,10 @@
                                 ${isExpired ? 'VENCIDO' : 'ACTIVO'}
                             </span>
                         </div>
-                        <div style="font-size:0.8rem; color:#aaa;">Vence: ${expDate.toLocaleDateString()}</div>
+                        <div style="font-size:0.8rem; color:#aaa;">Vence: ${expDate.toLocaleDateString()} ${expDate.toLocaleTimeString()}</div>
                         
-                        <div class="time-controls">
-                            <button class="btn-time" onclick="window.addTime('${docSnap.id}', 30)">+30 Días</button>
+                        <div class="time-controls" style="margin-top:10px;">
+                            <button class="btn-time" onclick="window.addTime('${docSnap.id}', 30)">+1 Mes</button>
                             <button class="btn-time" onclick="window.addTime('${docSnap.id}', 180)">+6 Meses</button>
                             <button class="btn-time" onclick="window.addTime('${docSnap.id}', 365)">+1 Año</button>
                             <button class="btn-time" style="border-color:#ff4757; color:#ff4757;" onclick="window.removeAdmin('${docSnap.id}')">Eliminar</button>
@@ -224,13 +251,11 @@
             });
         }
 
-        // Funciones Globales para gestión de tiempos
         window.addTime = async (uid, days) => {
             const docRef = doc(db, "admins_data", uid);
             const snap = await getDoc(docRef);
             const currentExp = snap.data().expiration;
             
-            // Si ya venció, reinicia desde HOY. Si no, suma al futuro.
             let baseTime = (currentExp < Date.now()) ? Date.now() : currentExp;
             const newDate = baseTime + (days * 24 * 60 * 60 * 1000);
 
@@ -238,13 +263,12 @@
         };
 
         window.removeAdmin = async (uid) => {
-            if(confirm("¿Eliminar acceso? El usuario no podrá entrar al panel.")) {
+            if(confirm("¿Seguro que deseas eliminar este usuario?")) {
                 await deleteDoc(doc(db, "admins_data", uid));
             }
         };
 
-
-        // --- 3. LISTADO DE RESERVAS (Para todos) ---
+        // --- 5. GESTIÓN DE RESERVAS ---
         function loadReservas() {
             const listContainer = document.getElementById('bookingsList');
             const q = query(collection(db, "reservas"), orderBy("fecha"), orderBy("hora"));
@@ -282,17 +306,9 @@
             });
         }
 
-        window.confirmReserva = async (id) => {
-            if(confirm("¿Confirmar recepción del pago SINPE?")) {
-                await updateDoc(doc(db, "reservas", id), { estado: "confirmada" });
-            }
-        };
+        window.confirmReserva = async (id) => await updateDoc(doc(db, "reservas", id), { estado: "confirmada" });
+        window.deleteReserva = async (id) => { if(confirm("¿Eliminar reserva?")) await deleteDoc(doc(db, "reservas", id)); };
 
-        window.deleteReserva = async (id) => {
-            if(confirm("¿Eliminar reserva y liberar el espacio?")) {
-                await deleteDoc(doc(db, "reservas", id));
-            }
-        };
     </script>
 </body>
 </html>
