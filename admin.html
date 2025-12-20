@@ -7,11 +7,11 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        /* Estilos idénticos a la versión anterior */
         .admin-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #000; border-bottom: 2px solid var(--accent-cyan); }
         .logout-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s;}
         .logout-btn:hover { background: #ff6b6b; }
         
-        /* Panel Super Admin */
         #superAdminPanel { 
             border: 2px solid var(--accent-orange); 
             padding: 20px; 
@@ -30,10 +30,8 @@
         .expire-date { font-weight: bold; color: var(--accent-green); }
         .expired { color: #ff4757; font-weight: bold; }
 
-        /* Estilos Inputs Nuevos */
         .admin-input { width: 100%; padding: 10px; margin-bottom: 10px; background: #222; border: 1px solid #555; color: white; border-radius: 4px; }
         
-        /* Estilos Reservas */
         .booking-card {
             background: #16213e;
             border: 1px solid #333;
@@ -49,6 +47,7 @@
         .status-pendiente { border-left-color: #ff9d00; }
         .status-confirmada { border-left-color: #00ff88; }
         .btn-action { padding: 8px 16px; border: none; cursor: pointer; font-weight: bold; border-radius: 50px; color: #000; margin-left: 5px;}
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -99,7 +98,6 @@
         import { getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // TUS CREDENCIALES REALES
         const firebaseConfig = {
             apiKey: "AIzaSyARYoLaqbQX6uBJc56wELmHWYd1h96ullw",
             authDomain: "pablo-morera-servicios.firebaseapp.com",
@@ -110,27 +108,26 @@
             measurementId: "G-3933KR8010"
         };
 
-        const app = initializeApp(firebaseConfig, "MainApp");
+        // --- CORRECCIÓN AQUÍ: Quitamos el segundo parámetro "MainApp" ---
+        // Al dejarlo vacío, usa la instancia DEFAULT que comparte sesión con login.html
+        const app = initializeApp(firebaseConfig); 
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- 1. LOGOUT MEJORADO ---
+        // --- LOGOUT ---
         document.getElementById('btnLogout').addEventListener('click', async () => {
             const btn = document.getElementById('btnLogout');
-            btn.textContent = "Cerrando...";
-            btn.disabled = true;
+            btn.textContent = "Cerrando..."; btn.disabled = true;
             try {
                 await signOut(auth);
                 window.location.href = "login.html";
             } catch (error) {
                 console.error("Error al salir:", error);
-                alert("Error al cerrar sesión. Intenta recargar la página.");
-                btn.textContent = "Cerrar Sesión";
-                btn.disabled = false;
+                window.location.href = "login.html"; // Forzar salida aunque falle la red
             }
         });
 
-        // --- 2. SEGURIDAD Y VERIFICACIÓN ---
+        // --- SEGURIDAD ---
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 window.location.href = "login.html";
@@ -142,22 +139,27 @@
                 const userSnap = await getDoc(userRef);
 
                 if (!userSnap.exists()) {
-                    alert("Usuario sin permisos.");
+                    // Si no tiene ficha, no es admin. Fuera.
+                    alert("Acceso denegado: Usuario no registrado como personal.");
                     await signOut(auth);
+                    window.location.href = "login.html";
                     return;
                 }
 
                 const userData = userSnap.data();
                 const now = new Date().getTime();
 
+                // Verificar vencimiento (Si no es Super Admin)
                 if (userData.expiration < now && userData.role !== 'superadmin') {
-                    alert("🚫 TU SUSCRIPCIÓN HA VENCIDO.");
+                    alert("🚫 TU LICENCIA HA VENCIDO.\nPor favor contacta a NelSystems para renovar.");
                     await signOut(auth);
+                    window.location.href = "login.html";
                     return;
                 }
 
-                document.getElementById('currentUserDisplay').textContent = `${userData.email} (${userData.role})`;
+                document.getElementById('currentUserDisplay').textContent = `${userData.email}`;
 
+                // Mostrar Panel Super Admin solo si corresponde
                 if (userData.role === 'superadmin') {
                     document.getElementById('superAdminPanel').classList.remove('hidden');
                     loadAdminsManagement(); 
@@ -166,12 +168,14 @@
                 loadReservas();
 
             } catch (error) {
-                console.error("Error cargando perfil:", error);
+                console.error("Error cargando:", error);
+                // No redirigimos aquí para evitar bucles por errores de red temporales
             }
         });
 
-        // --- 3. CREAR ADMIN (Con Selector de Días) ---
-        const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+        // --- CREAR ADMIN (Usando instancia secundaria aislada) ---
+        // Aquí SÍ usamos un nombre ("Secondary") para no desconectar al usuario actual
+        const secondaryApp = initializeApp(firebaseConfig, "Secondary");
         const secondaryAuth = getAuth(secondaryApp);
 
         document.getElementById('btnCreateAdmin').addEventListener('click', async () => {
@@ -180,21 +184,17 @@
             const daysSelect = document.getElementById('initialDuration').value;
             const btn = document.getElementById('btnCreateAdmin');
 
-            if(!email || !pass) return alert("Por favor completa el correo y la contraseña.");
+            if(!email || !pass) return alert("Faltan datos");
             
-            btn.textContent = "Procesando..."; 
-            btn.disabled = true;
+            btn.textContent = "Procesando..."; btn.disabled = true;
 
             try {
-                // Crear usuario en Auth
                 const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
                 
-                // Calcular fecha de vencimiento basada en la selección
                 const days = parseInt(daysSelect);
                 const expirationDate = new Date();
                 expirationDate.setDate(expirationDate.getDate() + days);
 
-                // Crear ficha en Firestore
                 await setDoc(doc(db, "admins_data", userCred.user.uid), {
                     email: email,
                     role: "admin",
@@ -202,21 +202,18 @@
                     createdAt: new Date()
                 });
 
-                alert(`✅ Admin creado correctamente.\nVencimiento: ${days} días.`);
-                
-                // Limpiar formulario
+                alert(`✅ Usuario creado.\nVence en: ${days} días.`);
                 document.getElementById('newAdminEmail').value = "";
                 document.getElementById('newAdminPass').value = "";
-                await signOut(secondaryAuth); // Limpiar sesión secundaria
+                await signOut(secondaryAuth);
 
             } catch (e) {
-                alert("Error al crear: " + e.message);
+                alert("Error: " + e.message);
             }
-            btn.textContent = "Crear Admin con Licencia"; 
-            btn.disabled = false;
+            btn.textContent = "Crear Admin con Licencia"; btn.disabled = false;
         });
 
-        // --- 4. GESTIÓN DE TIEMPOS (Prórrogas) ---
+        // --- GESTIÓN DE TIEMPOS ---
         function loadAdminsManagement() {
             const listDiv = document.getElementById('adminsList');
             onSnapshot(collection(db, "admins_data"), (snapshot) => {
@@ -231,15 +228,15 @@
                     const card = document.createElement("div");
                     card.className = "user-card";
                     card.innerHTML = `
-                        <div style="display:flex; justify-content:space-between;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
                             <strong style="color:white;">${data.email}</strong> 
-                            <span class="${isExpired ? 'expired' : 'expire-date'}">
-                                ${isExpired ? 'VENCIDO' : 'ACTIVO'}
+                            <span class="${isExpired ? 'expired' : 'expire-date'}" style="font-size:0.8rem;">
+                                ${isExpired ? '🚫 VENCIDO' : '✅ ACTIVO'}
                             </span>
                         </div>
-                        <div style="font-size:0.8rem; color:#aaa;">Vence: ${expDate.toLocaleDateString()} ${expDate.toLocaleTimeString()}</div>
+                        <div style="font-size:0.8rem; color:#aaa; margin-bottom:5px;">Vence: ${expDate.toLocaleDateString()}</div>
                         
-                        <div class="time-controls" style="margin-top:10px;">
+                        <div class="time-controls">
                             <button class="btn-time" onclick="window.addTime('${docSnap.id}', 30)">+1 Mes</button>
                             <button class="btn-time" onclick="window.addTime('${docSnap.id}', 180)">+6 Meses</button>
                             <button class="btn-time" onclick="window.addTime('${docSnap.id}', 365)">+1 Año</button>
@@ -255,36 +252,29 @@
             const docRef = doc(db, "admins_data", uid);
             const snap = await getDoc(docRef);
             const currentExp = snap.data().expiration;
-            
             let baseTime = (currentExp < Date.now()) ? Date.now() : currentExp;
             const newDate = baseTime + (days * 24 * 60 * 60 * 1000);
-
             await updateDoc(docRef, { expiration: newDate });
         };
 
         window.removeAdmin = async (uid) => {
-            if(confirm("¿Seguro que deseas eliminar este usuario?")) {
+            if(confirm("¿Eliminar usuario definitivamente?")) {
                 await deleteDoc(doc(db, "admins_data", uid));
             }
         };
 
-        // --- 5. GESTIÓN DE RESERVAS ---
+        // --- RESERVAS ---
         function loadReservas() {
             const listContainer = document.getElementById('bookingsList');
             const q = query(collection(db, "reservas"), orderBy("fecha"), orderBy("hora"));
-            
             onSnapshot(q, (snapshot) => {
                 listContainer.innerHTML = "";
-                if (snapshot.empty) { 
-                    listContainer.innerHTML = "<p style='text-align:center'>No hay reservas registradas.</p>"; 
-                    return; 
-                }
+                if (snapshot.empty) { listContainer.innerHTML = "<p style='text-align:center;color:#666'>Sin reservas.</p>"; return; }
                 
                 snapshot.forEach((docSnap) => {
                     const data = docSnap.data();
                     const card = document.createElement("div");
                     card.className = `booking-card status-${data.estado}`;
-                    
                     const estadoTexto = data.estado === 'pendiente' ? '⚠️ PENDIENTE PAGO' : '✅ CONFIRMADA';
 
                     card.innerHTML = `
@@ -294,10 +284,7 @@
                             <p style="font-size:0.8rem; margin-top:5px; color:${data.estado==='pendiente'?'#ff9d00':'#00ff88'}">${estadoTexto}</p>
                         </div>
                         <div>
-                            ${data.estado === 'pendiente' ? 
-                                `<button class="btn-action" style="background:#00ff88;" onclick="window.confirmReserva('${docSnap.id}')">Confirmar</button>` : 
-                                ``
-                            }
+                            ${data.estado === 'pendiente' ? `<button class="btn-action" style="background:#00ff88;" onclick="window.confirmReserva('${docSnap.id}')">✔</button>` : ``}
                             <button class="btn-action" style="background:#ff4757; color:white;" onclick="window.deleteReserva('${docSnap.id}')">🗑️</button>
                         </div>
                     `;
@@ -305,9 +292,8 @@
                 });
             });
         }
-
         window.confirmReserva = async (id) => await updateDoc(doc(db, "reservas", id), { estado: "confirmada" });
-        window.deleteReserva = async (id) => { if(confirm("¿Eliminar reserva?")) await deleteDoc(doc(db, "reservas", id)); };
+        window.deleteReserva = async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db, "reservas", id)); };
 
     </script>
 </body>
