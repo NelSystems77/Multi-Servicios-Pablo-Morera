@@ -2,19 +2,89 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>DEBUG ADMIN</title>
-    <style>body{background:#000;color:#0f0;font-family:monospace;padding:20px;}</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Master - NelSystems</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        .admin-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #000; border-bottom: 2px solid var(--accent-cyan); }
+        .logout-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
+        /* Panel Super Admin */
+        #superAdminPanel { 
+            border: 2px solid var(--accent-orange); 
+            padding: 20px; 
+            margin: 20px auto; 
+            border-radius: 8px; 
+            background: rgba(255,157,0,0.05); 
+            max-width: 800px;
+        }
+        .super-title { color: var(--accent-orange); font-family: 'Orbitron'; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        
+        .user-card { background: #0b0b15; padding: 15px; margin-top: 10px; border: 1px solid #333; display: flex; flex-direction: column; gap: 10px; border-radius: 5px; }
+        .time-controls { display: flex; gap: 5px; flex-wrap: wrap; }
+        .btn-time { font-size: 0.75rem; padding: 5px 10px; background: #222; color: #ccc; border: 1px solid #444; cursor: pointer; border-radius: 3px; }
+        .btn-time:hover { background: var(--accent-cyan); color: #000; border-color: var(--accent-cyan); }
+        
+        .expire-date { font-weight: bold; color: var(--accent-green); }
+        .expired { color: #ff4757; font-weight: bold; }
+
+        /* Estilos Reservas */
+        .booking-card {
+            background: #16213e;
+            border: 1px solid #333;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 6px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        .status-pendiente { border-left-color: #ff9d00; }
+        .status-confirmada { border-left-color: #00ff88; }
+        .btn-action { padding: 8px 16px; border: none; cursor: pointer; font-weight: bold; border-radius: 50px; color: #000; margin-left: 5px;}
+    </style>
 </head>
 <body>
-    <h1>MODO DE DIAGNÓSTICO</h1>
-    <div id="status">Cargando autenticación...</div>
-    <div id="error" style="color:red; margin-top:20px;"></div>
+
+    <div class="admin-header">
+        <span id="currentUserDisplay" style="color:white; font-size:0.9rem;">Cargando usuario...</span>
+        <button class="logout-btn" id="btnLogout">Cerrar Sesión</button>
+    </div>
+
+    <main class="container" style="max-width: 900px;">
+        
+        <div id="superAdminPanel" class="hidden">
+            <h2 class="super-title">🛠️ Gestión de Accesos (Super Usuario)</h2>
+            
+            <div class="form-group" style="background: rgba(0,0,0,0.3); padding:15px; border-radius:5px;">
+                <h3 style="color:white; font-size:1rem; margin-bottom:10px;">Crear Nuevo Admin (Cliente)</h3>
+                <input type="email" id="newAdminEmail" placeholder="Correo (ej: pablo@servicios.com)" style="margin-bottom:5px;">
+                <input type="password" id="newAdminPass" placeholder="Contraseña temporal" style="margin-bottom:10px;">
+                <button class="btn-whatsapp" id="btnCreateAdmin" style="background:var(--accent-orange); padding:10px; font-size:0.9rem; margin-top:0;">Crear Admin + 30 Días</button>
+            </div>
+
+            <h3 style="color:white; margin-top:20px; font-size:1rem;">Administradores Activos</h3>
+            <div id="adminsList">Cargando lista...</div>
+        </div>
+
+        <header>
+            <h1>Agenda <span>Servicios</span></h1>
+        </header>
+
+        <div id="bookingsList">
+            <p style="text-align:center; color:#888;">Cargando reservas...</p>
+        </div>
+    </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // CONFIGURACIÓN REAL
         const firebaseConfig = {
             apiKey: "AIzaSyARYoLaqbQX6uBJc56wELmHWYd1h96ullw",
             authDomain: "pablo-morera-servicios.firebaseapp.com",
@@ -25,50 +95,204 @@
             measurementId: "G-3933KR8010"
         };
 
-        const app = initializeApp(firebaseConfig);
+        const app = initializeApp(firebaseConfig, "MainApp");
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const statusDiv = document.getElementById('status');
-        const errorDiv = document.getElementById('error');
 
+        // --- 1. SEGURIDAD Y VERIFICACIÓN ---
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                statusDiv.textContent = "❌ ESTADO: No hay usuario logueado.";
-                errorDiv.textContent = "Causa: El login no persistió o no te has logueado. Ve a login.html de nuevo.";
+                window.location.href = "login.html";
                 return;
             }
 
-            statusDiv.textContent = `✅ Usuario detectado: ${user.email} (UID: ${user.uid})`;
-            statusDiv.innerHTML += "<br>⏳ Consultando base de datos...";
-
             try {
+                // Consultar permisos
                 const userRef = doc(db, "admins_data", user.uid);
                 const userSnap = await getDoc(userRef);
 
                 if (!userSnap.exists()) {
-                    statusDiv.innerHTML += "<br>❌ ERROR: Documento no encontrado.";
-                    errorDiv.innerHTML = "Causa: Tu usuario Auth existe, pero NO tiene ficha en la colección 'admins_data' de Firestore.<br>Solución: Usa reparar.html de nuevo.";
+                    alert("Error de seguridad: Usuario sin ficha de datos.");
+                    await signOut(auth);
+                    window.location.href = "login.html";
                     return;
                 }
 
                 const userData = userSnap.data();
-                statusDiv.innerHTML += `<br>✅ Ficha encontrada. Rol: ${userData.role}`;
-                statusDiv.innerHTML += `<br>📅 Vencimiento: ${new Date(userData.expiration).toLocaleDateString()}`;
-
                 const now = new Date().getTime();
+
+                // Verificar vencimiento (Ignorar si es superadmin)
                 if (userData.expiration < now && userData.role !== 'superadmin') {
-                    errorDiv.textContent = "❌ ERROR: TU CUENTA HA VENCIDO.";
-                } else {
-                    statusDiv.innerHTML += "<br>🎉 TODO CORRECTO. El sistema debería dejarte pasar.";
-                    errorDiv.style.color = "white";
-                    errorDiv.textContent = "Si ves esto, el problema era una redirección mal configurada. Vuelve a poner el código original de admin.html";
+                    alert("🚫 TU SUSCRIPCIÓN HA VENCIDO.\nContacta a NelSystems.");
+                    await signOut(auth);
+                    window.location.href = "login.html";
+                    return;
                 }
 
-            } catch (e) {
-                statusDiv.innerHTML += "<br>❌ ERROR CRÍTICO DE CONEXIÓN.";
-                errorDiv.innerHTML = `Mensaje: ${e.message}<br><br><b>¿POSIBLE CAUSA?</b> Reglas de Seguridad de Firestore bloqueadas.<br>Código: permission-denied`;
+                // UI: Mostrar usuario y Panel si corresponde
+                document.getElementById('currentUserDisplay').textContent = `${userData.email} (${userData.role})`;
+
+                if (userData.role === 'superadmin') {
+                    document.getElementById('superAdminPanel').classList.remove('hidden');
+                    loadAdminsManagement(); 
+                }
+
+                // Cargar reservas para todos
+                loadReservas();
+
+            } catch (error) {
+                console.error("Error cargando perfil:", error);
             }
         });
+
+        document.getElementById('btnLogout').addEventListener('click', () => {
+            signOut(auth).then(() => window.location.href = "login.html");
+        });
+
+
+        // --- 2. GESTIÓN DE ADMINS (SuperAdmin Only) ---
+        // Usamos una app secundaria para crear usuarios sin desloguear al admin actual
+        const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+        const secondaryAuth = getAuth(secondaryApp);
+
+        document.getElementById('btnCreateAdmin').addEventListener('click', async () => {
+            const email = document.getElementById('newAdminEmail').value;
+            const pass = document.getElementById('newAdminPass').value;
+            const btn = document.getElementById('btnCreateAdmin');
+
+            if(!email || !pass) return alert("Completa correo y contraseña");
+            btn.textContent = "Creando..."; btn.disabled = true;
+
+            try {
+                // Crear en Auth
+                const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+                
+                // Calcular 30 días
+                const expirationDate = new Date();
+                expirationDate.setDate(expirationDate.getDate() + 30);
+
+                // Crear en Firestore
+                await setDoc(doc(db, "admins_data", userCred.user.uid), {
+                    email: email,
+                    role: "admin",
+                    expiration: expirationDate.getTime(),
+                    createdAt: new Date()
+                });
+
+                alert("✅ Administrador creado con éxito.");
+                document.getElementById('newAdminEmail').value = "";
+                document.getElementById('newAdminPass').value = "";
+                signOut(secondaryAuth); // Limpiar sesión secundaria
+
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+            btn.textContent = "Crear Admin + 30 Días"; btn.disabled = false;
+        });
+
+        function loadAdminsManagement() {
+            const listDiv = document.getElementById('adminsList');
+            onSnapshot(collection(db, "admins_data"), (snapshot) => {
+                listDiv.innerHTML = "";
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if(data.role === 'superadmin') return; 
+
+                    const expDate = new Date(data.expiration);
+                    const isExpired = Date.now() > data.expiration;
+                    
+                    const card = document.createElement("div");
+                    card.className = "user-card";
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between;">
+                            <strong style="color:white;">${data.email}</strong> 
+                            <span class="${isExpired ? 'expired' : 'expire-date'}">
+                                ${isExpired ? 'VENCIDO' : 'ACTIVO'}
+                            </span>
+                        </div>
+                        <div style="font-size:0.8rem; color:#aaa;">Vence: ${expDate.toLocaleDateString()}</div>
+                        
+                        <div class="time-controls">
+                            <button class="btn-time" onclick="window.addTime('${docSnap.id}', 30)">+30 Días</button>
+                            <button class="btn-time" onclick="window.addTime('${docSnap.id}', 180)">+6 Meses</button>
+                            <button class="btn-time" onclick="window.addTime('${docSnap.id}', 365)">+1 Año</button>
+                            <button class="btn-time" style="border-color:#ff4757; color:#ff4757;" onclick="window.removeAdmin('${docSnap.id}')">Eliminar</button>
+                        </div>
+                    `;
+                    listDiv.appendChild(card);
+                });
+            });
+        }
+
+        // Funciones Globales para gestión de tiempos
+        window.addTime = async (uid, days) => {
+            const docRef = doc(db, "admins_data", uid);
+            const snap = await getDoc(docRef);
+            const currentExp = snap.data().expiration;
+            
+            // Si ya venció, reinicia desde HOY. Si no, suma al futuro.
+            let baseTime = (currentExp < Date.now()) ? Date.now() : currentExp;
+            const newDate = baseTime + (days * 24 * 60 * 60 * 1000);
+
+            await updateDoc(docRef, { expiration: newDate });
+        };
+
+        window.removeAdmin = async (uid) => {
+            if(confirm("¿Eliminar acceso? El usuario no podrá entrar al panel.")) {
+                await deleteDoc(doc(db, "admins_data", uid));
+            }
+        };
+
+
+        // --- 3. LISTADO DE RESERVAS (Para todos) ---
+        function loadReservas() {
+            const listContainer = document.getElementById('bookingsList');
+            const q = query(collection(db, "reservas"), orderBy("fecha"), orderBy("hora"));
+            
+            onSnapshot(q, (snapshot) => {
+                listContainer.innerHTML = "";
+                if (snapshot.empty) { 
+                    listContainer.innerHTML = "<p style='text-align:center'>No hay reservas registradas.</p>"; 
+                    return; 
+                }
+                
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const card = document.createElement("div");
+                    card.className = `booking-card status-${data.estado}`;
+                    
+                    const estadoTexto = data.estado === 'pendiente' ? '⚠️ PENDIENTE PAGO' : '✅ CONFIRMADA';
+
+                    card.innerHTML = `
+                        <div>
+                            <h3 style="color:var(--accent-cyan); margin-bottom:5px;">${data.fecha} - ${data.hora}</h3>
+                            <p style="color:white;"><strong>${data.cliente}</strong> (${data.servicio})</p>
+                            <p style="font-size:0.8rem; margin-top:5px; color:${data.estado==='pendiente'?'#ff9d00':'#00ff88'}">${estadoTexto}</p>
+                        </div>
+                        <div>
+                            ${data.estado === 'pendiente' ? 
+                                `<button class="btn-action" style="background:#00ff88;" onclick="window.confirmReserva('${docSnap.id}')">Confirmar</button>` : 
+                                ``
+                            }
+                            <button class="btn-action" style="background:#ff4757; color:white;" onclick="window.deleteReserva('${docSnap.id}')">🗑️</button>
+                        </div>
+                    `;
+                    listContainer.appendChild(card);
+                });
+            });
+        }
+
+        window.confirmReserva = async (id) => {
+            if(confirm("¿Confirmar recepción del pago SINPE?")) {
+                await updateDoc(doc(db, "reservas", id), { estado: "confirmada" });
+            }
+        };
+
+        window.deleteReserva = async (id) => {
+            if(confirm("¿Eliminar reserva y liberar el espacio?")) {
+                await deleteDoc(doc(db, "reservas", id));
+            }
+        };
     </script>
 </body>
 </html>
