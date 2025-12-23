@@ -55,11 +55,11 @@
                 <input type="text" id="msgDesc" placeholder="¿Qué desea enviar/recolectar?">
                 <input type="text" id="msgRetiro" placeholder="Lugar de retiro">
                 <input type="text" id="msgEntrega" placeholder="Lugar de entrega">
-                <textarea id="msgDetalles" placeholder="Otros detalles..."></textarea>
+                <textarea id="msgDetalles" placeholder="Otros detalles (Contacto, referencias)..."></textarea>
             </div>
 
             <div id="fields-fila" class="service-section hidden">
-                <input type="text" id="filaLugar" placeholder="Lugar del evento">
+                <input type="text" id="filaLugar" placeholder="Lugar del evento/fila">
                 <label>Fecha del evento:</label>
                 <input type="date" id="filaFecha">
                 <label>Hora llegada:</label>
@@ -67,12 +67,12 @@
             </div>
 
             <div id="fields-dj" class="service-section hidden">
-                <input type="text" id="djDireccion" placeholder="Dirección exacta">
+                <input type="text" id="djDireccion" placeholder="Dirección exacta del evento">
                 <input type="number" id="djHoras" placeholder="Horas contratadas" min="1">
             </div>
 
             <div id="fields-otros" class="service-section hidden">
-                <textarea id="otrosDesc" placeholder="Describe el servicio..."></textarea>
+                <textarea id="otrosDesc" placeholder="Describe detalladamente el servicio..."></textarea>
             </div>
 
             <hr>
@@ -80,7 +80,8 @@
             <div class="calendar-section">
                 <h2>📅 Reserva tu Espacio</h2>
                 <label>Fecha requerida:</label>
-                <input type="date" id="reservaFecha" required> <label>Hora estimada:</label>
+                <input type="date" id="reservaFecha" required> 
+                <label>Hora estimada:</label>
                 <input type="time" id="reservaHora" required>
                 <div id="availabilityMsg" class="availability hidden"></div>
             </div>
@@ -88,6 +89,7 @@
             <div class="form-group">
                 <label>Tu Nombre:</label>
                 <input type="text" id="clientName" required placeholder="Nombre completo">
+                <input type="tel" id="clientPhone" placeholder="Tu número de teléfono (Opcional)" style="margin-top:10px; width:100%; padding:10px; background:#333; border:1px solid #555; color:white;">
             </div>
 
             <button type="button" id="btnSubmit" class="btn-whatsapp">
@@ -107,7 +109,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // CREDENCIALES REALES
+        // CREDENCIALES
         const firebaseConfig = {
             apiKey: "AIzaSyARYoLaqbQX6uBJc56wELmHWYd1h96ullw",
             authDomain: "pablo-morera-servicios.firebaseapp.com",
@@ -153,7 +155,6 @@
             }
         }
 
-        // Event Listeners para verificar en tiempo real
         document.getElementById('reservaFecha').addEventListener('change', checkAvailability);
         document.getElementById('reservaHora').addEventListener('change', checkAvailability);
 
@@ -163,6 +164,7 @@
             const fecha = document.getElementById('reservaFecha').value;
             const hora = document.getElementById('reservaHora').value;
             const cliente = document.getElementById('clientName').value;
+            const telefono = document.getElementById('clientPhone').value; // Nuevo campo
             const servicio = document.getElementById('serviceType').value;
 
             if(!fecha || !hora || !cliente || !servicio) {
@@ -173,7 +175,6 @@
             btn.disabled = true;
             btn.textContent = "Procesando...";
 
-            // Doble chequeo antes de guardar
             const isFree = await checkAvailability();
             if(!isFree) {
                 alert("Lo sentimos, el espacio acaba de ser ocupado.");
@@ -182,18 +183,52 @@
                 return;
             }
 
+            // --- AQUÍ ESTÁ LA MAGIA: RECOPILAR DETALLES ---
+            let detalleTexto = "";
+
+            switch(servicio) {
+                case "tramites":
+                    const sub = document.getElementById('tramiteSubtype').value;
+                    const hosp = document.getElementById('hospitalSelect').value;
+                    detalleTexto = `Trámite: ${sub}. Lugar: ${hosp}`;
+                    break;
+                case "mensajeria":
+                    const msgD = document.getElementById('msgDesc').value;
+                    const retiro = document.getElementById('msgRetiro').value;
+                    const entrega = document.getElementById('msgEntrega').value;
+                    const extra = document.getElementById('msgDetalles').value;
+                    detalleTexto = `Envío: ${msgD}. \nDe: ${retiro} -> A: ${entrega}. \nNota: ${extra}`;
+                    break;
+                case "fila":
+                    const lugarFila = document.getElementById('filaLugar').value;
+                    const fechaFila = document.getElementById('filaFecha').value;
+                    const horaFila = document.getElementById('filaHora').value;
+                    detalleTexto = `Hacer fila en: ${lugarFila}. \nFecha evento: ${fechaFila} ${horaFila}`;
+                    break;
+                case "dj":
+                    const dir = document.getElementById('djDireccion').value;
+                    const hrs = document.getElementById('djHoras').value;
+                    detalleTexto = `DJ en: ${dir}. \nDuración: ${hrs} horas.`;
+                    break;
+                case "otros":
+                    detalleTexto = document.getElementById('otrosDesc').value;
+                    break;
+            }
+
             try {
-                // Guardar en Firestore
+                // Guardar en Firestore con el campo DETALLE
                 await addDoc(collection(db, "reservas"), {
                     cliente: cliente,
+                    telefono: telefono, // Guardamos teléfono si lo puso
                     servicio: servicio,
                     fecha: fecha,
                     hora: hora,
-                    estado: "pendiente", // Inicia como pendiente de pago
+                    detalle: detalleTexto, // <--- ESTO ES LO QUE LEERÁ ADMIN.HTML
+                    estado: "pendiente",
                     timestamp: new Date()
                 });
 
-                // Llamar a la función de WhatsApp que está en script.js
+                // Llamar al WhatsApp
                 window.generateWhatsAppLink(); 
 
             } catch (e) {
@@ -205,5 +240,4 @@
         });
     </script>
 </body>
-
 </html>
