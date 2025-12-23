@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pablo-morera-v2';
+const CACHE_NAME = 'pablo-morera-v3';
 const urlsToCache = [
   './',
   './index.html',
