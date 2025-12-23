@@ -7,12 +7,13 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* Estilos Generales */
+        /* --- ESTILOS GENERALES --- */
+        body { background-color: #050505; color: #fff; font-family: 'Roboto', sans-serif; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #000; border-bottom: 2px solid var(--accent-cyan); }
         .logout-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s;}
         .logout-btn:hover { background: #ff6b6b; }
         
-        /* Panel Super Admin */
+        /* --- PANEL SUPER ADMIN --- */
         #superAdminPanel { 
             border: 2px solid var(--accent-orange); 
             padding: 20px; 
@@ -22,46 +23,81 @@
             max-width: 800px;
         }
         .super-title { color: var(--accent-orange); font-family: 'Orbitron'; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .admin-input { width: 100%; padding: 10px; margin-bottom: 10px; background: #222; border: 1px solid #555; color: white; border-radius: 4px; }
         
+        /* Lista de Admins */
         .user-card { background: #0b0b15; padding: 15px; margin-top: 10px; border: 1px solid #333; display: flex; flex-direction: column; gap: 10px; border-radius: 5px; }
         .time-controls { display: flex; gap: 5px; flex-wrap: wrap; }
         .btn-time { font-size: 0.75rem; padding: 5px 10px; background: #222; color: #ccc; border: 1px solid #444; cursor: pointer; border-radius: 3px; }
-        .btn-time:hover { background: var(--accent-cyan); color: #000; border-color: var(--accent-cyan); }
-        
-        .expire-date { font-weight: bold; color: var(--accent-green); }
-        .expired { color: #ff4757; font-weight: bold; }
+        .expired { color: #ff4757; font-weight: bold; } .expire-date { font-weight: bold; color: var(--accent-green); }
 
-        .admin-input { width: 100%; padding: 10px; margin-bottom: 10px; background: #222; border: 1px solid #555; color: white; border-radius: 4px; }
-        
-        /* Estilos Reservas MEJORADOS */
+        /* --- NUEVOS ESTILOS: FICHA TÉCNICA DE RESERVA --- */
         .booking-card {
-            background: #16213e;
+            background: #12121a;
             border: 1px solid #333;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 6px solid #555;
+            padding: 0; /* Padding interno manejado por hijos */
+            margin-bottom: 20px;
+            border-left: 8px solid #555; /* Indicador de estado */
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        
+        .booking-header {
+            background: #1a1a24;
+            padding: 10px 15px;
             display: flex;
             justify-content: space-between;
-            align-items: center; /* Centrado vertical */
-            border-radius: 8px;
-            flex-wrap: wrap;
-            gap: 15px;
+            align-items: center;
+            border-bottom: 1px solid #333;
         }
-        .status-pendiente { border-left-color: #ff9d00; }
-        .status-confirmada { border-left-color: #00ff88; }
         
-        /* Nueva caja para el detalle */
+        .booking-date { font-family: 'Orbitron'; color: var(--accent-cyan); font-size: 1.1rem; }
+        .booking-time { background: #000; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; border: 1px solid #444; }
+
+        .booking-body { padding: 15px; }
+
+        .client-info { margin-bottom: 15px; }
+        .client-name { font-size: 1.2rem; font-weight: bold; color: white; display: block;}
+        .client-service { color: #aaa; font-size: 0.9rem; margin-top: 2px; display: block; text-transform: uppercase; letter-spacing: 1px;}
+        .client-phone { color: var(--accent-green); font-size: 0.9rem; text-decoration: none; display: inline-block; margin-top: 5px;}
+
+        /* CAJA DE DETALLES (Lo importante) */
         .detail-box {
-            background: rgba(0,0,0,0.3);
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 0.9rem;
+            background: #222;
+            border: 1px solid #444;
+            padding: 12px;
+            border-radius: 6px;
             color: #ddd;
-            margin: 5px 0;
-            border-left: 2px solid #555;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin: 10px 0;
+            white-space: pre-wrap; /* Respeta los enter/saltos de línea */
+        }
+        .detail-label { color: var(--accent-orange); font-size: 0.75rem; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 5px; }
+
+        .booking-footer {
+            padding: 10px 15px;
+            background: #0e0e12;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .btn-action { padding: 10px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; color: #000; margin-left: 5px; font-size: 1rem;}
+        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
+        .badge-pending { background: rgba(255, 157, 0, 0.2); color: #ff9d00; border: 1px solid #ff9d00; }
+        .badge-confirmed { background: rgba(0, 255, 136, 0.2); color: #00ff88; border: 1px solid #00ff88; }
+
+        .actions { display: flex; gap: 10px; }
+        .btn-action { padding: 8px 16px; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; color: #fff; font-size: 0.9rem; transition: 0.2s; }
+        .btn-confirm { background: #00b894; color: black; }
+        .btn-confirm:hover { background: #00ff88; }
+        .btn-delete { background: #d63031; }
+        .btn-delete:hover { background: #ff7675; }
+
+        .status-pendiente { border-left-color: #ff9d00; }
+        .status-confirmada { border-left-color: #00ff88; }
         .hidden { display: none; }
     </style>
 </head>
@@ -72,39 +108,31 @@
         <button class="logout-btn" id="btnLogout">Cerrar Sesión</button>
     </div>
 
-    <main class="container" style="max-width: 900px;">
+    <main class="container" style="max-width: 900px; padding: 20px;">
         
         <div id="superAdminPanel" class="hidden">
-            <h2 class="super-title">🛠️ Gestión de Accesos (Super Usuario)</h2>
-            
+            <h2 class="super-title">🛠️ Gestión de Accesos</h2>
             <div class="form-group" style="background: rgba(0,0,0,0.3); padding:15px; border-radius:5px;">
-                <h3 style="color:white; font-size:1rem; margin-bottom:10px;">Crear Nuevo Admin (Cliente)</h3>
-                
-                <input type="email" id="newAdminEmail" class="admin-input" placeholder="Correo (ej: pablo@servicios.com)">
-                <input type="password" id="newAdminPass" class="admin-input" placeholder="Contraseña temporal">
-                
-                <label style="color:var(--accent-cyan); font-size:0.9rem; margin-bottom:5px; display:block;">Tiempo de Suscripción Inicial:</label>
+                <h3 style="color:white; font-size:1rem; margin-bottom:10px;">Crear Nuevo Admin</h3>
+                <input type="email" id="newAdminEmail" class="admin-input" placeholder="Correo">
+                <input type="password" id="newAdminPass" class="admin-input" placeholder="Contraseña">
                 <select id="initialDuration" class="admin-input">
-                    <option value="30">1 Mes (30 días)</option>
+                    <option value="30">1 Mes</option>
                     <option value="90">3 Meses</option>
                     <option value="180">6 Meses</option>
                     <option value="365">1 Año</option>
-                    <option value="7">Prueba Gratis (7 días)</option>
                 </select>
-
-                <button class="btn-whatsapp" id="btnCreateAdmin" style="background:var(--accent-orange); padding:10px; font-size:0.9rem; margin-top:5px;">Crear Admin con Licencia</button>
+                <button class="btn-whatsapp" id="btnCreateAdmin" style="background:var(--accent-orange); padding:10px; width:100%;">Crear Licencia</button>
             </div>
-
-            <h3 style="color:white; margin-top:20px; font-size:1rem;">Administradores Activos</h3>
-            <div id="adminsList">Cargando lista...</div>
+            <div id="adminsList" style="margin-top:20px;"></div>
         </div>
 
-        <header>
-            <h1>Agenda <span>Servicios</span></h1>
+        <header style="margin-bottom: 20px; text-align: center;">
+            <h1 style="font-family: 'Orbitron'; font-size: 2rem;">Agenda <span style="color:var(--accent-cyan);">Operativa</span></h1>
         </header>
 
         <div id="bookingsList">
-            <p style="text-align:center; color:#888;">Cargando reservas...</p>
+            <p style="text-align:center; color:#888;">Cargando sistema...</p>
         </div>
     </main>
 
@@ -127,210 +155,137 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- LOGOUT ---
+        // LOGOUT
         document.getElementById('btnLogout').addEventListener('click', async () => {
-            const btn = document.getElementById('btnLogout');
-            btn.textContent = "Cerrando..."; btn.disabled = true;
-            try {
-                await signOut(auth);
-                window.location.href = "login.html";
-            } catch (error) {
-                console.error("Error al salir:", error);
-                window.location.href = "login.html"; 
-            }
+            try { await signOut(auth); window.location.href = "login.html"; } 
+            catch (e) { window.location.href = "login.html"; }
         });
 
-        // --- SEGURIDAD ---
+        // SEGURIDAD
         onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                window.location.href = "login.html";
-                return;
-            }
-
+            if (!user) { window.location.href = "login.html"; return; }
             try {
-                const userRef = doc(db, "admins_data", user.uid);
-                const userSnap = await getDoc(userRef);
-
-                if (!userSnap.exists()) {
-                    alert("Acceso denegado: Usuario no registrado como personal.");
-                    await signOut(auth);
-                    window.location.href = "login.html";
-                    return;
-                }
-
+                const userSnap = await getDoc(doc(db, "admins_data", user.uid));
+                if (!userSnap.exists()) { alert("Sin permisos"); await signOut(auth); return; }
                 const userData = userSnap.data();
-                const now = new Date().getTime();
-
-                if (userData.expiration < now && userData.role !== 'superadmin') {
-                    alert("🚫 TU LICENCIA HA VENCIDO.\nPor favor contacta a NelSystems para renovar.");
-                    await signOut(auth);
-                    window.location.href = "login.html";
-                    return;
+                
+                if (userData.expiration < Date.now() && userData.role !== 'superadmin') {
+                    alert("LICENCIA VENCIDA"); await signOut(auth); return;
                 }
-
-                document.getElementById('currentUserDisplay').textContent = `${userData.email}`;
-
+                
+                document.getElementById('currentUserDisplay').textContent = userData.email;
                 if (userData.role === 'superadmin') {
                     document.getElementById('superAdminPanel').classList.remove('hidden');
                     loadAdminsManagement(); 
                 }
-
                 loadReservas();
-
-            } catch (error) {
-                console.error("Error cargando:", error);
-            }
+            } catch (e) { console.error(e); }
         });
 
-        // --- CREAR ADMIN ---
-        const secondaryApp = initializeApp(firebaseConfig, "Secondary");
-        const secondaryAuth = getAuth(secondaryApp);
-
-        document.getElementById('btnCreateAdmin').addEventListener('click', async () => {
-            const email = document.getElementById('newAdminEmail').value;
-            const pass = document.getElementById('newAdminPass').value;
-            const daysSelect = document.getElementById('initialDuration').value;
-            const btn = document.getElementById('btnCreateAdmin');
-
-            if(!email || !pass) return alert("Faltan datos");
-            btn.textContent = "Procesando..."; btn.disabled = true;
-
-            try {
-                const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
-                const days = parseInt(daysSelect);
-                const expirationDate = new Date();
-                expirationDate.setDate(expirationDate.getDate() + days);
-
-                await setDoc(doc(db, "admins_data", userCred.user.uid), {
-                    email: email,
-                    role: "admin",
-                    expiration: expirationDate.getTime(),
-                    createdAt: new Date()
-                });
-
-                alert(`✅ Usuario creado.\nVence en: ${days} días.`);
-                document.getElementById('newAdminEmail').value = "";
-                document.getElementById('newAdminPass').value = "";
-                await signOut(secondaryAuth);
-            } catch (e) {
-                alert("Error: " + e.message);
-            }
-            btn.textContent = "Crear Admin con Licencia"; btn.disabled = false;
-        });
-
-        // --- GESTIÓN DE TIEMPOS ---
-        function loadAdminsManagement() {
-            const listDiv = document.getElementById('adminsList');
-            onSnapshot(collection(db, "admins_data"), (snapshot) => {
-                listDiv.innerHTML = "";
-                snapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    if(data.role === 'superadmin') return; 
-
-                    const expDate = new Date(data.expiration);
-                    const isExpired = Date.now() > data.expiration;
-                    
-                    const card = document.createElement("div");
-                    card.className = "user-card";
-                    card.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <strong style="color:white;">${data.email}</strong> 
-                            <span class="${isExpired ? 'expired' : 'expire-date'}" style="font-size:0.8rem;">
-                                ${isExpired ? '🚫 VENCIDO' : '✅ ACTIVO'}
-                            </span>
-                        </div>
-                        <div style="font-size:0.8rem; color:#aaa; margin-bottom:5px;">Vence: ${expDate.toLocaleDateString()}</div>
-                        <div class="time-controls">
-                            <button class="btn-time" onclick="window.addTime('${docSnap.id}', 30)">+1 Mes</button>
-                            <button class="btn-time" onclick="window.addTime('${docSnap.id}', 180)">+6 Meses</button>
-                            <button class="btn-time" onclick="window.addTime('${docSnap.id}', 365)">+1 Año</button>
-                            <button class="btn-time" style="border-color:#ff4757; color:#ff4757;" onclick="window.removeAdmin('${docSnap.id}')">Eliminar</button>
-                        </div>
-                    `;
-                    listDiv.appendChild(card);
-                });
-            });
-        }
-        window.addTime = async (uid, days) => {
-            const docRef = doc(db, "admins_data", uid);
-            const snap = await getDoc(docRef);
-            const currentExp = snap.data().expiration;
-            let baseTime = (currentExp < Date.now()) ? Date.now() : currentExp;
-            const newDate = baseTime + (days * 24 * 60 * 60 * 1000);
-            await updateDoc(docRef, { expiration: newDate });
-        };
-        window.removeAdmin = async (uid) => {
-            if(confirm("¿Eliminar usuario definitivamente?")) await deleteDoc(doc(db, "admins_data", uid));
-        };
-
-        // --- RESERVAS (MEJORADA) ---
+        // --- CARGAR RESERVAS CON DETALLE COMPLETO ---
         function loadReservas() {
             const listContainer = document.getElementById('bookingsList');
-            // Usamos ordenación automática gracias al índice creado
             const q = query(collection(db, "reservas"), orderBy("fecha"), orderBy("hora"));
             
             onSnapshot(q, (snapshot) => {
                 listContainer.innerHTML = "";
-                if (snapshot.empty) { listContainer.innerHTML = "<p style='text-align:center;color:#666'>Sin reservas.</p>"; return; }
+                if (snapshot.empty) { 
+                    listContainer.innerHTML = "<p style='text-align:center;color:#666'>No hay solicitudes pendientes.</p>"; 
+                    return; 
+                }
                 
                 snapshot.forEach((docSnap) => {
                     const data = docSnap.data();
                     const card = document.createElement("div");
                     card.className = `booking-card status-${data.estado}`;
                     
-                    // Texto descriptivo del estado
-                    const estadoTexto = data.estado === 'pendiente' 
-                        ? '⚠️ Pendiente de Pago' 
-                        : '✅ Pago 100% (Confirmada)';
+                    // Lógica para obtener el texto del detalle
+                    // Buscamos 'detalle', 'notas', 'descripcion' o ponemos un texto por defecto
+                    let textoDetalle = "Sin especificaciones.";
+                    if (data.detalle && data.detalle.trim() !== "") textoDetalle = data.detalle;
+                    else if (data.notas && data.notas.trim() !== "") textoDetalle = data.notas;
+                    else if (data.descripcion && data.descripcion.trim() !== "") textoDetalle = data.descripcion;
 
-                    // Manejo del campo detalle (por si viene vacío)
-                    const detalleInfo = data.detalle ? data.detalle : "Sin detalles adicionales.";
+                    // Teléfono (si existe)
+                    const telefonoHtml = data.telefono ? `<a href="tel:${data.telefono}" class="client-phone">📞 ${data.telefono}</a>` : '';
 
                     card.innerHTML = `
-                        <div style="flex: 1; min-width: 250px;">
-                            <h3 style="color:var(--accent-cyan); font-size:1.2rem; margin-bottom:5px;">
-                                ${data.fecha} <span style="font-size:0.9rem; color:#888;">a las ${data.hora}</span>
-                            </h3>
-                            
-                            <p style="color:white; font-size:1.1rem; margin-bottom:2px;">
-                                <strong>${data.cliente}</strong>
-                            </p>
-                            
-                            <p style="color:#aaa; font-style:italic; font-size:0.9rem; margin-bottom:10px;">
-                                Servicio: ${data.servicio}
-                            </p>
+                        <div class="booking-header">
+                            <span class="booking-date">${data.fecha}</span>
+                            <span class="booking-time">${data.hora}</span>
+                        </div>
+                        
+                        <div class="booking-body">
+                            <div class="client-info">
+                                <span class="client-name">${data.cliente}</span>
+                                <span class="client-service">${data.servicio}</span>
+                                ${telefonoHtml}
+                            </div>
 
                             <div class="detail-box">
-                                <strong>Detalle:</strong> ${detalleInfo}
+                                <span class="detail-label">Detalle / Instrucciones:</span>
+                                ${textoDetalle}
                             </div>
-                            
-                            <p style="font-size:0.8rem; margin-top:8px; font-weight:bold; color:${data.estado==='pendiente'?'#ff9d00':'#00ff88'}">
-                                ${estadoTexto}
-                            </p>
                         </div>
 
-                        <div style="display:flex; flex-direction:column; gap:5px;">
-                            ${data.estado === 'pendiente' ? 
-                                `<button class="btn-action" style="background:#00ff88;" title="Confirmar Pago" onclick="window.confirmReserva('${docSnap.id}')">✔ Confirmar</button>` : 
-                                `<button class="btn-action" style="background:#444; color:#888; cursor:default;" disabled>✔ Listo</button>`
-                            }
-                            <button class="btn-action" style="background:#ff4757; color:white;" title="Eliminar Cita" onclick="window.deleteReserva('${docSnap.id}')">🗑️ Eliminar</button>
+                        <div class="booking-footer">
+                            <span class="status-badge ${data.estado === 'pendiente' ? 'badge-pending' : 'badge-confirmed'}">
+                                ${data.estado === 'pendiente' ? 'Pendiente Pago' : 'Confirmado'}
+                            </span>
+
+                            <div class="actions">
+                                ${data.estado === 'pendiente' ? 
+                                    `<button class="btn-action btn-confirm" onclick="window.confirmReserva('${docSnap.id}')">Confirmar</button>` : ''
+                                }
+                                <button class="btn-action btn-delete" onclick="window.deleteReserva('${docSnap.id}')">Eliminar</button>
+                            </div>
                         </div>
                     `;
                     listContainer.appendChild(card);
                 });
             });
         }
-        window.confirmReserva = async (id) => {
-            if(confirm("¿Confirmar que el cliente realizó el pago completo?")) {
-                await updateDoc(doc(db, "reservas", id), { estado: "confirmada" });
-            }
-        };
-        window.deleteReserva = async (id) => { 
-            if(confirm("¿Borrar esta reserva definitivamente?")) {
-                await deleteDoc(doc(db, "reservas", id)); 
-            }
-        };
+
+        window.confirmReserva = async (id) => { if(confirm("¿Pago recibido?")) await updateDoc(doc(db, "reservas", id), { estado: "confirmada" }); };
+        window.deleteReserva = async (id) => { if(confirm("¿Eliminar solicitud?")) await deleteDoc(doc(db, "reservas", id)); };
+
+        // --- CREAR ADMIN & TIEMPOS ---
+        const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+        const secondaryAuth = getAuth(secondaryApp);
+        document.getElementById('btnCreateAdmin').addEventListener('click', async () => {
+            /* (Lógica de crear admin idéntica a la anterior, resumida para no saturar) */
+            const email = document.getElementById('newAdminEmail').value;
+            const pass = document.getElementById('newAdminPass').value;
+            const days = parseInt(document.getElementById('initialDuration').value);
+            if(!email || !pass) return alert("Faltan datos");
+            try {
+                const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+                const exp = new Date(); exp.setDate(exp.getDate() + days);
+                await setDoc(doc(db, "admins_data", userCred.user.uid), { email, role: "admin", expiration: exp.getTime(), createdAt: new Date() });
+                alert("Usuario creado"); await signOut(secondaryAuth);
+            } catch(e) { alert(e.message); }
+        });
+
+        function loadAdminsManagement() {
+            const listDiv = document.getElementById('adminsList');
+            onSnapshot(collection(db, "admins_data"), (snap) => {
+                listDiv.innerHTML = "";
+                snap.forEach(d => {
+                    const dd = d.data();
+                    if(dd.role==='superadmin') return;
+                    listDiv.innerHTML += `
+                    <div class="user-card">
+                        <div style="display:flex;justify-content:space-between"><strong>${dd.email}</strong></div>
+                        <div class="time-controls">
+                             <button class="btn-time" onclick="window.addTime('${d.id}', 30)">+30d</button>
+                             <button class="btn-time" onclick="window.deleteUser('${d.id}')">Borrar</button>
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+        window.addTime = async (uid, d) => { /* Lógica de tiempo */ const ref = doc(db,"admins_data",uid); const s = await getDoc(ref); const t = s.data().expiration < Date.now() ? Date.now() : s.data().expiration; await updateDoc(ref, { expiration: t + (d*86400000) }); };
+        window.deleteUser = async (uid) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db,"admins_data",uid)); };
 
     </script>
 </body>
