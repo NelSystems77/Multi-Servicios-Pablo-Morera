@@ -7,11 +7,12 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* Estilos idénticos a la versión anterior */
+        /* Estilos Generales */
         .admin-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #000; border-bottom: 2px solid var(--accent-cyan); }
         .logout-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s;}
         .logout-btn:hover { background: #ff6b6b; }
         
+        /* Panel Super Admin */
         #superAdminPanel { 
             border: 2px solid var(--accent-orange); 
             padding: 20px; 
@@ -32,6 +33,7 @@
 
         .admin-input { width: 100%; padding: 10px; margin-bottom: 10px; background: #222; border: 1px solid #555; color: white; border-radius: 4px; }
         
+        /* Estilos Reservas MEJORADOS */
         .booking-card {
             background: #16213e;
             border: 1px solid #333;
@@ -40,13 +42,26 @@
             border-left: 6px solid #555;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: center; /* Centrado vertical */
             border-radius: 8px;
             flex-wrap: wrap;
+            gap: 15px;
         }
         .status-pendiente { border-left-color: #ff9d00; }
         .status-confirmada { border-left-color: #00ff88; }
-        .btn-action { padding: 8px 16px; border: none; cursor: pointer; font-weight: bold; border-radius: 50px; color: #000; margin-left: 5px;}
+        
+        /* Nueva caja para el detalle */
+        .detail-box {
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #ddd;
+            margin: 5px 0;
+            border-left: 2px solid #555;
+        }
+
+        .btn-action { padding: 10px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; color: #000; margin-left: 5px; font-size: 1rem;}
         .hidden { display: none; }
     </style>
 </head>
@@ -108,8 +123,6 @@
             measurementId: "G-3933KR8010"
         };
 
-        // --- CORRECCIÓN AQUÍ: Quitamos el segundo parámetro "MainApp" ---
-        // Al dejarlo vacío, usa la instancia DEFAULT que comparte sesión con login.html
         const app = initializeApp(firebaseConfig); 
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -123,7 +136,7 @@
                 window.location.href = "login.html";
             } catch (error) {
                 console.error("Error al salir:", error);
-                window.location.href = "login.html"; // Forzar salida aunque falle la red
+                window.location.href = "login.html"; 
             }
         });
 
@@ -139,7 +152,6 @@
                 const userSnap = await getDoc(userRef);
 
                 if (!userSnap.exists()) {
-                    // Si no tiene ficha, no es admin. Fuera.
                     alert("Acceso denegado: Usuario no registrado como personal.");
                     await signOut(auth);
                     window.location.href = "login.html";
@@ -149,7 +161,6 @@
                 const userData = userSnap.data();
                 const now = new Date().getTime();
 
-                // Verificar vencimiento (Si no es Super Admin)
                 if (userData.expiration < now && userData.role !== 'superadmin') {
                     alert("🚫 TU LICENCIA HA VENCIDO.\nPor favor contacta a NelSystems para renovar.");
                     await signOut(auth);
@@ -159,7 +170,6 @@
 
                 document.getElementById('currentUserDisplay').textContent = `${userData.email}`;
 
-                // Mostrar Panel Super Admin solo si corresponde
                 if (userData.role === 'superadmin') {
                     document.getElementById('superAdminPanel').classList.remove('hidden');
                     loadAdminsManagement(); 
@@ -169,12 +179,10 @@
 
             } catch (error) {
                 console.error("Error cargando:", error);
-                // No redirigimos aquí para evitar bucles por errores de red temporales
             }
         });
 
-        // --- CREAR ADMIN (Usando instancia secundaria aislada) ---
-        // Aquí SÍ usamos un nombre ("Secondary") para no desconectar al usuario actual
+        // --- CREAR ADMIN ---
         const secondaryApp = initializeApp(firebaseConfig, "Secondary");
         const secondaryAuth = getAuth(secondaryApp);
 
@@ -185,12 +193,10 @@
             const btn = document.getElementById('btnCreateAdmin');
 
             if(!email || !pass) return alert("Faltan datos");
-            
             btn.textContent = "Procesando..."; btn.disabled = true;
 
             try {
                 const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
-                
                 const days = parseInt(daysSelect);
                 const expirationDate = new Date();
                 expirationDate.setDate(expirationDate.getDate() + days);
@@ -206,7 +212,6 @@
                 document.getElementById('newAdminEmail').value = "";
                 document.getElementById('newAdminPass').value = "";
                 await signOut(secondaryAuth);
-
             } catch (e) {
                 alert("Error: " + e.message);
             }
@@ -235,7 +240,6 @@
                             </span>
                         </div>
                         <div style="font-size:0.8rem; color:#aaa; margin-bottom:5px;">Vence: ${expDate.toLocaleDateString()}</div>
-                        
                         <div class="time-controls">
                             <button class="btn-time" onclick="window.addTime('${docSnap.id}', 30)">+1 Mes</button>
                             <button class="btn-time" onclick="window.addTime('${docSnap.id}', 180)">+6 Meses</button>
@@ -247,7 +251,6 @@
                 });
             });
         }
-
         window.addTime = async (uid, days) => {
             const docRef = doc(db, "admins_data", uid);
             const snap = await getDoc(docRef);
@@ -256,17 +259,16 @@
             const newDate = baseTime + (days * 24 * 60 * 60 * 1000);
             await updateDoc(docRef, { expiration: newDate });
         };
-
         window.removeAdmin = async (uid) => {
-            if(confirm("¿Eliminar usuario definitivamente?")) {
-                await deleteDoc(doc(db, "admins_data", uid));
-            }
+            if(confirm("¿Eliminar usuario definitivamente?")) await deleteDoc(doc(db, "admins_data", uid));
         };
 
-        // --- RESERVAS ---
+        // --- RESERVAS (MEJORADA) ---
         function loadReservas() {
             const listContainer = document.getElementById('bookingsList');
+            // Usamos ordenación automática gracias al índice creado
             const q = query(collection(db, "reservas"), orderBy("fecha"), orderBy("hora"));
+            
             onSnapshot(q, (snapshot) => {
                 listContainer.innerHTML = "";
                 if (snapshot.empty) { listContainer.innerHTML = "<p style='text-align:center;color:#666'>Sin reservas.</p>"; return; }
@@ -275,25 +277,60 @@
                     const data = docSnap.data();
                     const card = document.createElement("div");
                     card.className = `booking-card status-${data.estado}`;
-                    const estadoTexto = data.estado === 'pendiente' ? '⚠️ PENDIENTE PAGO' : '✅ CONFIRMADA';
+                    
+                    // Texto descriptivo del estado
+                    const estadoTexto = data.estado === 'pendiente' 
+                        ? '⚠️ Pendiente de Pago' 
+                        : '✅ Pago 100% (Confirmada)';
+
+                    // Manejo del campo detalle (por si viene vacío)
+                    const detalleInfo = data.detalle ? data.detalle : "Sin detalles adicionales.";
 
                     card.innerHTML = `
-                        <div>
-                            <h3 style="color:var(--accent-cyan); margin-bottom:5px;">${data.fecha} - ${data.hora}</h3>
-                            <p style="color:white;"><strong>${data.cliente}</strong> (${data.servicio})</p>
-                            <p style="font-size:0.8rem; margin-top:5px; color:${data.estado==='pendiente'?'#ff9d00':'#00ff88'}">${estadoTexto}</p>
+                        <div style="flex: 1; min-width: 250px;">
+                            <h3 style="color:var(--accent-cyan); font-size:1.2rem; margin-bottom:5px;">
+                                ${data.fecha} <span style="font-size:0.9rem; color:#888;">a las ${data.hora}</span>
+                            </h3>
+                            
+                            <p style="color:white; font-size:1.1rem; margin-bottom:2px;">
+                                <strong>${data.cliente}</strong>
+                            </p>
+                            
+                            <p style="color:#aaa; font-style:italic; font-size:0.9rem; margin-bottom:10px;">
+                                Servicio: ${data.servicio}
+                            </p>
+
+                            <div class="detail-box">
+                                <strong>Detalle:</strong> ${detalleInfo}
+                            </div>
+                            
+                            <p style="font-size:0.8rem; margin-top:8px; font-weight:bold; color:${data.estado==='pendiente'?'#ff9d00':'#00ff88'}">
+                                ${estadoTexto}
+                            </p>
                         </div>
-                        <div>
-                            ${data.estado === 'pendiente' ? `<button class="btn-action" style="background:#00ff88;" onclick="window.confirmReserva('${docSnap.id}')">✔</button>` : ``}
-                            <button class="btn-action" style="background:#ff4757; color:white;" onclick="window.deleteReserva('${docSnap.id}')">🗑️</button>
+
+                        <div style="display:flex; flex-direction:column; gap:5px;">
+                            ${data.estado === 'pendiente' ? 
+                                `<button class="btn-action" style="background:#00ff88;" title="Confirmar Pago" onclick="window.confirmReserva('${docSnap.id}')">✔ Confirmar</button>` : 
+                                `<button class="btn-action" style="background:#444; color:#888; cursor:default;" disabled>✔ Listo</button>`
+                            }
+                            <button class="btn-action" style="background:#ff4757; color:white;" title="Eliminar Cita" onclick="window.deleteReserva('${docSnap.id}')">🗑️ Eliminar</button>
                         </div>
                     `;
                     listContainer.appendChild(card);
                 });
             });
         }
-        window.confirmReserva = async (id) => await updateDoc(doc(db, "reservas", id), { estado: "confirmada" });
-        window.deleteReserva = async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db, "reservas", id)); };
+        window.confirmReserva = async (id) => {
+            if(confirm("¿Confirmar que el cliente realizó el pago completo?")) {
+                await updateDoc(doc(db, "reservas", id), { estado: "confirmada" });
+            }
+        };
+        window.deleteReserva = async (id) => { 
+            if(confirm("¿Borrar esta reserva definitivamente?")) {
+                await deleteDoc(doc(db, "reservas", id)); 
+            }
+        };
 
     </script>
 </body>
