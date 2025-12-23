@@ -47,8 +47,12 @@
                     <option value="Retiro de medicamentos">Retiro de medicamentos</option>
                     <option value="Sacar citas">Sacar citas en Ebais o clínicas</option>
                 </select>
+                
                 <label>Seleccione el lugar:</label>
                 <select id="hospitalSelect"></select>
+
+                <label style="color:var(--accent-orange); margin-top:10px; display:block;">Hora de la Cita/Trámite:</label>
+                <input type="time" id="tramiteHora">
             </div>
 
             <div id="fields-mensajeria" class="service-section hidden">
@@ -79,9 +83,10 @@
 
             <div class="calendar-section">
                 <h2>📅 Reserva tu Espacio</h2>
+                <p style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">Esta es la hora en que Pablo debe iniciar el servicio.</p>
                 <label>Fecha requerida:</label>
                 <input type="date" id="reservaFecha" required> 
-                <label>Hora estimada:</label>
+                <label>Hora de inicio:</label>
                 <input type="time" id="reservaHora" required>
                 <div id="availabilityMsg" class="availability hidden"></div>
             </div>
@@ -109,7 +114,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // CREDENCIALES
         const firebaseConfig = {
             apiKey: "AIzaSyARYoLaqbQX6uBJc56wELmHWYd1h96ullw",
             authDomain: "pablo-morera-servicios.firebaseapp.com",
@@ -164,7 +168,7 @@
             const fecha = document.getElementById('reservaFecha').value;
             const hora = document.getElementById('reservaHora').value;
             const cliente = document.getElementById('clientName').value;
-            const telefono = document.getElementById('clientPhone').value; // Nuevo campo
+            const telefono = document.getElementById('clientPhone').value;
             const servicio = document.getElementById('serviceType').value;
 
             if(!fecha || !hora || !cliente || !servicio) {
@@ -183,15 +187,20 @@
                 return;
             }
 
-            // --- AQUÍ ESTÁ LA MAGIA: RECOPILAR DETALLES ---
+            // --- RECOPILAR DETALLES (Ahora incluye HORA CITA) ---
             let detalleTexto = "";
 
             switch(servicio) {
                 case "tramites":
                     const sub = document.getElementById('tramiteSubtype').value;
                     const hosp = document.getElementById('hospitalSelect').value;
-                    detalleTexto = `Trámite: ${sub}. Lugar: ${hosp}`;
+                    const tHora = document.getElementById('tramiteHora').value; // Nueva variable
+                    
+                    // Formateamos el texto
+                    detalleTexto = `Trámite: ${sub}.\nLugar: ${hosp}.`;
+                    if(tHora) detalleTexto += `\nHora Cita/Trámite: ${tHora}`;
                     break;
+
                 case "mensajeria":
                     const msgD = document.getElementById('msgDesc').value;
                     const retiro = document.getElementById('msgRetiro').value;
@@ -199,36 +208,37 @@
                     const extra = document.getElementById('msgDetalles').value;
                     detalleTexto = `Envío: ${msgD}. \nDe: ${retiro} -> A: ${entrega}. \nNota: ${extra}`;
                     break;
+
                 case "fila":
                     const lugarFila = document.getElementById('filaLugar').value;
                     const fechaFila = document.getElementById('filaFecha').value;
                     const horaFila = document.getElementById('filaHora').value;
-                    detalleTexto = `Hacer fila en: ${lugarFila}. \nFecha evento: ${fechaFila} ${horaFila}`;
+                    detalleTexto = `Hacer fila en: ${lugarFila}. \nFecha evento: ${fechaFila} a las ${horaFila}`;
                     break;
+
                 case "dj":
                     const dir = document.getElementById('djDireccion').value;
                     const hrs = document.getElementById('djHoras').value;
                     detalleTexto = `DJ en: ${dir}. \nDuración: ${hrs} horas.`;
                     break;
+
                 case "otros":
                     detalleTexto = document.getElementById('otrosDesc').value;
                     break;
             }
 
             try {
-                // Guardar en Firestore con el campo DETALLE
                 await addDoc(collection(db, "reservas"), {
                     cliente: cliente,
-                    telefono: telefono, // Guardamos teléfono si lo puso
+                    telefono: telefono,
                     servicio: servicio,
                     fecha: fecha,
                     hora: hora,
-                    detalle: detalleTexto, // <--- ESTO ES LO QUE LEERÁ ADMIN.HTML
+                    detalle: detalleTexto, 
                     estado: "pendiente",
                     timestamp: new Date()
                 });
 
-                // Llamar al WhatsApp
                 window.generateWhatsAppLink(); 
 
             } catch (e) {
